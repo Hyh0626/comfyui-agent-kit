@@ -31,9 +31,10 @@ def tools() -> list[dict[str, Any]]:
         {"name": "comfyui_build_workflow", "description": "辅助搭建并按本机节点 schema 校验工作流草案：生成 SDXL 图生图/多视角差分 API workflow，或按 ComfyUI 官方 Hunyuan3D 单图/多视角模板生成 GLB 工作流；已有 3D API workflow 也可校验。会报告缺少的模型和输入图，不会保存、排队或执行。", "inputSchema": {"type": "object", "properties": {"workflow_type": {"type": "string", "enum": ["img2img", "view_diffs", "image_to_3d"]}, "image": {"type": "string", "description": "ComfyUI input 目录中的图片文件名；图生图或单图 3D 使用"}, "view_prompts_json": {"type": "string", "description": "视角差分 JSON 对象，键为 left/right/back，值为该视角提示词；view_diffs 使用"}, "views_json": {"type": "string", "description": "可选多视角 JSON 对象，键为 front/left/back/right，值为 ComfyUI input 图片文件名；至少两视角时使用 Hunyuan3D MV 模型"}, "checkpoint": {"type": "string", "description": "图生图的 SDXL checkpoint 文件名"}, "model_name": {"type": "string", "description": "可选 Hunyuan3D checkpoint 文件名；默认按单图/MV 模板选择"}, "mesh_resolution": {"type": "integer", "minimum": 512, "maximum": 8192, "description": "Hunyuan3D 潜空间分辨率，官方模板默认 3072"}, "positive": {"type": "string"}, "negative": {"type": "string"}, "steps": {"type": "integer", "minimum": 1, "maximum": 150}, "cfg": {"type": "number", "minimum": 0, "maximum": 30}, "denoise": {"type": "number", "minimum": 0, "maximum": 1}, "seed": {"type": "integer", "minimum": 0}, "lora_name": {"type": "string", "description": "可选：本机 LoRA 文件名"}, "lora_strength": {"type": "number", "minimum": -10, "maximum": 10}, "filename_prefix": {"type": "string"}, "workflow_json": {"type": "string", "description": "可选：已有 3D API workflow JSON；工具会用本机 schema 校验"}}, "required": ["workflow_type"]}},
         {"name": "comfyui_validate_workflow", "description": "使用本机节点列表校验 API 格式 workflow 的节点类型、必填输入和连线引用；不提交队列。", "inputSchema": {"type": "object", "properties": {"workflow_json": {"type": "string"}}, "required": ["workflow_json"]}},
         {"name": "comfyui_save_workflow", "description": "把已确认的 UI workflow 或 API workflow JSON 保存到 ComfyUI 用户工作流目录；API 文件以 .api.json 结尾。", "inputSchema": {"type": "object", "properties": {"name": {"type": "string"}, "workflow_json": {"type": "string"}, "format": {"type": "string", "enum": ["ui", "api"]}}, "required": ["name", "workflow_json", "format"]}},
-        {"name": "comfyui_apply_project_art", "description": "将 ComfyUI output 图片应用到项目 assets/art/<id>.png；覆盖现有立绘必须显式设置 overwrite=true，旧图会备份。", "inputSchema": {"type": "object", "properties": {"filename": {"type": "string"}, "subfolder": {"type": "string"}, "type": {"type": "string", "enum": ["output", "temp"]}, "character_id": {"type": "string"}, "overwrite": {"type": "boolean"}}, "required": ["filename", "character_id"]}},
-        {"name": "comfyui_lora_preflight", "description": "检查训练集图片/字幕、重复文件、SDXL 底模、kohya_ss 和 GPU 显存，输出本机 LoRA 预检报告。", "inputSchema": {"type": "object", "properties": {"dataset_dir": {"type": "string"}, "base_model_path": {"type": "string"}, "trainer_root": {"type": "string"}}}},
-        {"name": "comfyui_lora_prepare", "description": "复制已审核的角色图片到训练暂存目录、按触发词生成 caption 草案，并保存 SDXL LoRA 训练计划；学习率默认 1e-4，可配置训练状态保存以便中断后续训；不会启动训练。", "inputSchema": {"type": "object", "properties": {"dataset_dir": {"type": "string"}, "character_id": {"type": "string"}, "base_model_path": {"type": "string"}, "trigger_word": {"type": "string"}, "caption_text": {"type": "string", "description": "没有逐图覆盖时使用的通用描述"}, "caption_overrides_json": {"type": "string", "description": "可选 JSON 对象，按图片文件名给出不同视角/服装/表情 caption"}, "rank": {"type": "integer", "enum": [4, 8]}, "epochs": {"type": "integer", "minimum": 1, "maximum": 100}, "resolution": {"type": "integer", "enum": [512, 640, 704, 768]}, "learning_rate": {"type": "number", "minimum": 0.000001, "maximum": 0.01, "description": "训练学习率；SDXL LoRA 默认 1e-4，覆盖 sd-scripts 的 2e-6 默认值"}, "save_training_state": {"type": "boolean", "description": "每次保存 LoRA checkpoint 时也保存优化器/调度器状态，供中断续训；会占用额外磁盘空间"}, "lr_scheduler": {"type": "string", "enum": ["constant", "linear", "cosine", "cosine_with_restarts", "polynomial", "constant_with_warmup"], "description": "学习率调度器；cosine_with_restarts 为硬重启余弦（每周期内 LR 从初始值余弦降到 0 再跳回）"}, "lr_scheduler_num_cycles": {"type": "integer", "minimum": 1, "maximum": 64, "description": "cosine_with_restarts 的重启周期数；24 epochs 建议 4~8"}, "lr_warmup_steps": {"type": "integer", "minimum": 0, "description": "调度器线性预热步数；0 表示不预热"}, "repeat": {"type": "integer", "minimum": 1, "maximum": 100, "description": "每张图重复次数，决定数据集目录名 <repeat>_<trigger>；默认 10"}, "network_alpha": {"type": "integer", "minimum": 1, "maximum": 128, "description": "LoRA alpha；不填时等于 rank（例如 dim16/alpha8）"}, "train_batch_size": {"type": "integer", "minimum": 1, "maximum": 8, "description": "每卡 batch size；8GB 显存建议 1"}, "optimizer_type": {"type": "string", "enum": ["Adafactor", "AdamW", "AdamW8bit", "PagedAdamW8bit", "Lion", "Lion8bit"], "description": "优化器；Adafactor 省显存，AdamW8bit 质量更好（需 bitsandbytes）"}, "learning_rate_te": {"type": "number", "minimum": 0, "maximum": 0.01, "description": "Text Encoder 学习率；>0 时训练 TE（自动关闭 cache_text_encoder_outputs 与 unet_only）；传 0 或省略表示不训练 TE（走缓存路径，TE 留在 CPU，省显存）"}}, "required": ["character_id", "trigger_word", "caption_text"]}},
+        {"name": "comfyui_gen_hires", "description": "两步式出图：mode=full_body 走「生成→放大1.5x→低denoise重绘」修复小脸瞳孔漂移与画风割裂；mode=face 走方形画布 portrait 避免切脸。自动套用经过验证的负向（去重/防幼稚化/防圆脸），可指定 LoRA 与强度。直接排队并返回 prompt_id。", "inputSchema": {"type": "object", "properties": {"prompt": {"type": "string", "description": "正向提示词；建议以触发词开头，构图词（full body / upper body）必须显式写"}, "mode": {"type": "string", "enum": ["full_body", "face"], "description": "full_body=两段式全身；face=方形面部"}, "negative": {"type": "string", "description": "可选，覆盖默认负向"}, "lora": {"type": "string", "description": "可选，LoRA 文件名（子目录用反斜杠，如 takeuchi_e12_plus2\\e12(2).safetensors）"}, "lora_strength": {"type": "number", "minimum": 0, "maximum": 2}, "checkpoint": {"type": "string"}, "size": {"type": "integer", "description": "face 模式的方形边长，默认 1024"}, "width": {"type": "integer"}, "height": {"type": "integer"}, "upscale": {"type": "number"}, "denoise": {"type": "number"}, "steps": {"type": "integer"}, "cfg": {"type": "number"}, "seed": {"type": "integer"}, "filename_prefix": {"type": "string"}}, "required": ["prompt", "mode"]}},
+        {"name": "comfyui_apply_art", "description": "把 ComfyUI output 图片保存为项目产物 assets/art/<id>.png；覆盖现有文件必须显式设置 overwrite=true，旧图会备份。", "inputSchema": {"type": "object", "properties": {"filename": {"type": "string"}, "subfolder": {"type": "string"}, "type": {"type": "string", "enum": ["output", "temp"]}, "character_id": {"type": "string"}, "overwrite": {"type": "boolean"}}, "required": ["filename", "character_id"]}},
+        {"name": "comfyui_lora_preflight", "description": "检查 LoRA 训练集图片/字幕、重复文件、SDXL 底模、kohya_ss 和 GPU 显存，输出本机预检报告。", "inputSchema": {"type": "object", "properties": {"dataset_dir": {"type": "string"}, "base_model_path": {"type": "string"}, "trainer_root": {"type": "string"}}}},
+        {"name": "comfyui_lora_prepare", "description": "复制已审核的图片到训练暂存目录、按触发词生成 caption 草案，并保存 SDXL LoRA 训练计划；学习率默认 1e-4，可配置训练状态保存以便中断后续训；不会启动训练。", "inputSchema": {"type": "object", "properties": {"dataset_dir": {"type": "string"}, "character_id": {"type": "string"}, "base_model_path": {"type": "string"}, "trigger_word": {"type": "string"}, "caption_text": {"type": "string", "description": "没有逐图覆盖时使用的通用描述"}, "caption_overrides_json": {"type": "string", "description": "可选 JSON 对象，按图片文件名给出不同视角/服装/表情 caption"}, "rank": {"type": "integer", "enum": [4, 8]}, "epochs": {"type": "integer", "minimum": 1, "maximum": 100}, "resolution": {"type": "integer", "enum": [512, 640, 704, 768]}, "learning_rate": {"type": "number", "minimum": 0.000001, "maximum": 0.01, "description": "训练学习率；SDXL LoRA 默认 1e-4，覆盖 sd-scripts 的 2e-6 默认值"}, "save_training_state": {"type": "boolean", "description": "每次保存 LoRA checkpoint 时也保存优化器/调度器状态，供中断续训；会占用额外磁盘空间"}, "lr_scheduler": {"type": "string", "enum": ["constant", "linear", "cosine", "cosine_with_restarts", "polynomial", "constant_with_warmup"], "description": "学习率调度器；cosine_with_restarts 为硬重启余弦（每周期内 LR 从初始值余弦降到 0 再跳回）"}, "lr_scheduler_num_cycles": {"type": "integer", "minimum": 1, "maximum": 64, "description": "cosine_with_restarts 的重启周期数；24 epochs 建议 4~8"}, "lr_warmup_steps": {"type": "integer", "minimum": 0, "description": "调度器线性预热步数；0 表示不预热"}, "repeat": {"type": "integer", "minimum": 1, "maximum": 100, "description": "每张图重复次数，决定数据集目录名 <repeat>_<trigger>；默认 10"}, "network_alpha": {"type": "integer", "minimum": 1, "maximum": 128, "description": "LoRA alpha；不填时等于 rank（例如 dim16/alpha8）"}, "train_batch_size": {"type": "integer", "minimum": 1, "maximum": 8, "description": "每卡 batch size；8GB 显存建议 1"}, "optimizer_type": {"type": "string", "enum": ["Adafactor", "AdamW", "AdamW8bit", "PagedAdamW8bit", "Lion", "Lion8bit"], "description": "优化器；Adafactor 省显存，AdamW8bit 质量更好（需 bitsandbytes）"}, "learning_rate_te": {"type": "number", "minimum": 0, "maximum": 0.01, "description": "Text Encoder 学习率；>0 时训练 TE（自动关闭 cache_text_encoder_outputs 与 unet_only）；传 0 或省略表示不训练 TE（走缓存路径，TE 留在 CPU，省显存）"}}, "required": ["character_id", "trigger_word", "caption_text"]}},
         {"name": "comfyui_lora_start", "description": "启动已经准备好的 SDXL LoRA 训练计划。仅在用户看过数据/caption/参数并明确确认后调用 confirmed=true；需要已安装 kohya_ss。可选 resume_state_path 从保存的完整训练状态续训。", "inputSchema": {"type": "object", "properties": {"plan_path": {"type": "string"}, "confirmed": {"type": "boolean"}, "trainer_root": {"type": "string"}, "resume_state_path": {"type": "string", "description": "可选：sd-scripts accelerator.save_state 目录；只有启用 save_training_state 并存在该目录时才能续训"}}, "required": ["plan_path", "confirmed"]}},
         {"name": "comfyui_lora_status", "description": "查看指定 LoRA 训练计划的运行状态和最近日志。", "inputSchema": {"type": "object", "properties": {"plan_path": {"type": "string"}}, "required": ["plan_path"]}},
     ]
@@ -532,13 +533,46 @@ def call_tool(name: str, args: dict[str, Any], request: Callable[..., Any]) -> A
             raise FileExistsError(f"工作流已存在，未覆盖：{target}")
         target.write_text(json.dumps(workflow, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         return {"saved_to": str(target), "format": fmt, "note": "UI workflow 可在 ComfyUI 打开；API workflow 是用于 MCP 队列的 API 图，不能当作画布格式直接打开。"}
-    if name == "comfyui_apply_project_art":
+    if name == "comfyui_gen_hires":
+        sys.path.insert(0, str(Path(__file__).parent))
+        from comfyui_recipes import full_body_hiresfix, portrait_face, NEG_BASE, ANIMAGINE
+        mode = str(args["mode"]).strip().lower()
+        neg = args.get("negative") or NEG_BASE
+        common = dict(
+            positive=args["prompt"], negative=neg,
+            ckpt=args.get("checkpoint") or ANIMAGINE,
+            lora=args.get("lora") or None,
+            lora_strength=float(args.get("lora_strength", 0.85)),
+            steps=int(args.get("steps", 28)), cfg=float(args.get("cfg", 5.5)),
+            seed=int(args.get("seed", 20261018)),
+            prefix=args.get("filename_prefix") or ("hires/" + mode),
+        )
+        if mode == "full_body":
+            wf = full_body_hiresfix(
+                width=int(args.get("width", 832)), height=int(args.get("height", 1216)),
+                upscale=float(args.get("upscale", 1.5)), denoise=float(args.get("denoise", 0.40)),
+                **common)
+        elif mode == "face":
+            wf = portrait_face(size=int(args.get("size", 1024)), **common)
+        else:
+            raise ValueError("mode 只支持 full_body 或 face")
+        client_id = str(args.get("client_id") or "dsh-comfyui")
+        payload = json.dumps({"prompt": wf, "client_id": client_id}).encode("utf-8")
+        req = urllib.request.Request(
+            os.environ.get("COMFYUI_URL", "http://127.0.0.1:8188").rstrip("/") + "/prompt",
+            data=payload, headers={"Content-Type": "application/json"})
+        with urllib.request.urlopen(req, timeout=60) as resp:
+            body = json.loads(resp.read().decode("utf-8"))
+        return {"prompt_id": body.get("prompt_id"), "node_count": len(wf),
+                "mode": mode, "number": body.get("number"),
+                "note": "已排队；用 comfyui_get_history 按 prompt_id 取结果。"}
+    if name == "comfyui_apply_art":
         character_id = args["character_id"]
         if not re.fullmatch(r"[A-Za-z0-9_-]+", character_id):
-            raise ValueError("character_id 仅允许字母、数字、下划线和连字符")
+            raise ValueError("id 仅允许字母、数字、下划线和连字符")
         filename = args["filename"]
         if Path(filename).suffix.lower() != ".png":
-            raise ValueError("立绘目标必须使用 PNG；请先从 ComfyUI output 选择 PNG 文件")
+            raise ValueError("目标文件使用 PNG；请先从 ComfyUI output 选择 PNG 文件")
         query = urllib.parse.urlencode({"filename": filename, "subfolder": args.get("subfolder", ""), "type": args.get("type", "output")})
         req = urllib.request.Request(os.environ.get("COMFYUI_URL", "http://127.0.0.1:8188").rstrip("/") + "/view?" + query)
         with urllib.request.urlopen(req, timeout=60) as response:
@@ -836,6 +870,16 @@ def call_tool(name: str, args: dict[str, Any], request: Callable[..., Any]) -> A
             if output_dir not in resume_state.parents:
                 raise ValueError(f"续训状态目录必须位于本训练计划的 output_dir 内：{output_dir}")
             script_args.extend(["--resume", str(resume_state)])
+        # 只加载 LoRA 权重、不加载优化器状态。允许改变网络结构（分层 rank/学习率）
+        # 或改变调度器；代价是优化器动量与步/轮计数从零开始。
+        network_weights = plan.get("network_weights") or args.get("network_weights")
+        if network_weights:
+            nw = Path(network_weights).expanduser().resolve()
+            if not nw.is_file():
+                raise ValueError(f"network_weights 文件不存在：{nw}")
+            if resume_state_path:
+                raise ValueError("network_weights 与 resume_state_path 不能同时使用")
+            script_args.extend(["--network_weights", str(nw)])
         log = log_path.open("ab")
         flags = getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0) | getattr(subprocess, "DETACHED_PROCESS", 0)
         proc = subprocess.Popen(script_args, cwd=str(script.parent), stdin=subprocess.DEVNULL, stdout=log, stderr=subprocess.STDOUT, creationflags=flags, close_fds=True)

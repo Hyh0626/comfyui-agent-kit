@@ -1,10 +1,10 @@
 # comfyui-agent-kit
 
 把一个**全局 ComfyUI MCP server** 同时接入 **Codex / Claude Code / ZCode / DeepSeek Harness (DSH)**。
-同一个 `comfyui-local` server、同一组环境变量、同一套 18 个工具；四个 agent 之间互不干扰。
+同一个 `comfyui-local` server、同一组环境变量、同一套 19 个工具；四个 agent 之间互不干扰。
 
 > **English**: One local MCP server that exposes ComfyUI's HTTP API plus SDXL LoRA
-> training as 18 tools, with registration snippets for Codex, Claude Code, ZCode and
+> training as 19 tools, with registration snippets for Codex, Claude Code, ZCode and
 > DeepSeek Harness. The DSH side ships a Cordis plugin that turns the same tools into
 > native DSH tools.
 
@@ -14,14 +14,14 @@
 
 Codex / Claude Code / ZCode 都有自己的 MCP 客户端，注册一下就能直连 `server.py`。
 DSH 的工具模型是 Cordis，**没有外部 MCP 挂载机制**，所以这里额外提供一个薄桥接插件
-`dsh-plugin/`：启动时读一次 `tools/list`，把 18 个工具用 `ctx.tools.register` 注册成
+`dsh-plugin/`：启动时读一次 `tools/list`，把 19 个工具用 `ctx.tools.register` 注册成
 一等原生工具；每次调用再拉起短命 `server.py` 转发。
 
 ```
                     ┌─ Codex        （原生 MCP，TOML）
 server.py  ◄────────┼─ Claude Code  （原生 MCP，JSON）
 features.py         ├─ ZCode        （原生 MCP，JSON）
-   │ 18 tools       └─ DSH          （Cordis 插件 dsh-plugin/）
+   │ 19 tools       └─ DSH          （Cordis 插件 dsh-plugin/）
    ▼
 ComfyUI HTTP API (127.0.0.1:8188)
 ```
@@ -33,8 +33,9 @@ ComfyUI HTTP API (127.0.0.1:8188)
 ```
 comfyui-agent-kit/
 ├─ mcp-server/
-│  ├─ server.py        # stdio JSON-RPC，8 个基础工具（仅用 Python 标准库）
-│  └─ features.py      # 10 个扩展工具（工作流/节点/项目资产/SDXL LoRA 训练）
+│  ├─ server.py           # stdio JSON-RPC，8 个基础工具（仅用 Python 标准库）
+│  ├─ features.py         # 11 个扩展工具（工作流/节点/项目资产/SDXL LoRA 训练）
+│  └─ comfyui_recipes.py  # 可选：两段式出图配方（hires-fix / 面部特写）
 ├─ dsh-plugin/
 │  ├─ package.json     # dsh.bundle.patch 指向下面的补丁
 │  ├─ cordis.patch.yml # 只插入自己一行，不替换任何官方组件
@@ -160,13 +161,14 @@ dsh plugin --profile desktop add "C:\path\to\comfyui-agent-kit\dsh-plugin"
 
 后三个只影响 DSH 插件；其余对所有 agent 生效。
 
-## 工具（18 个）
+## 工具（19 个）
 
 | 组 | 工具 |
 |---|---|
 | ComfyUI 基础 | `comfyui_status` · `comfyui_list_models` · `comfyui_queue_workflow` · `comfyui_queue_status` · `comfyui_get_history` · `comfyui_interrupt` · `comfyui_upload_image` · `comfyui_download_output` |
 | 节点与工作流 | `comfyui_search_nodes` · `comfyui_get_node_schema` · `comfyui_build_workflow` · `comfyui_validate_workflow` · `comfyui_save_workflow` |
-| 项目资产 | `comfyui_apply_project_art` |
+| 出图配方 | `comfyui_gen_hires`（两段式：生成 → 放大 → 低 denoise 重绘；或方形面部模式） |
+| 项目资产 | `comfyui_apply_art` |
 | SDXL LoRA 训练 | `comfyui_lora_preflight` · `comfyui_lora_prepare` · `comfyui_lora_start` · `comfyui_lora_status` |
 
 ## 示例
@@ -186,7 +188,7 @@ dsh plugin --profile desktop add "C:\path\to\comfyui-agent-kit\dsh-plugin"
 
 - server 只连 `COMFYUI_URL`，不访问任何外网、无遥测。
 - 默认只监听回环地址；如需暴露到局域网请自行加鉴权。
-- `comfyui_apply_project_art` 覆盖已存在立绘时要求显式 `overwrite=true`，并保留
+- `comfyui_apply_art` 覆盖已存在文件时要求显式 `overwrite=true`，并保留
   `*.before-comfyui.png` 备份。
 - 仓库内不含任何 API key / token。
 
