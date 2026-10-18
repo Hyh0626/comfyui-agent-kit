@@ -1,0 +1,5 @@
+# dsh-comfyui-mcp bundle patch: inserts the comfyui-mcp row into the plugin roster.
+# Adds only our own row; does not replace any official DSH component.
+- insert:
+    - id: comfyui-mcp
+      name: 'dsh-comfyui-mcp'

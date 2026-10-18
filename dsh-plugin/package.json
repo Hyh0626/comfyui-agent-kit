@@ -1,0 +1,40 @@
+{
+  "name": "dsh-comfyui-mcp",
+  "version": "0.1.1",
+  "description": "DSH bridge for the comfyui-local MCP server: registers every ComfyUI workflow and SDXL LoRA training tool as a first-class DSH tool.",
+  "license": "MIT",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib",
+    "cordis.patch.yml"
+  ],
+  "keywords": [
+    "dsh",
+    "deepseek-harness",
+    "cordis",
+    "comfyui",
+    "mcp",
+    "sdxl",
+    "lora"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Hyh0626/comfyui-agent-kit.git",
+    "directory": "dsh-plugin"
+  },
+  "homepage": "https://github.com/Hyh0626/comfyui-agent-kit#readme",
+  "engines": {
+    "node": ">=22"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  }
+}

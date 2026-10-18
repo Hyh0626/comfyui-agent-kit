@@ -1,0 +1,37 @@
+# dependencies
+node_modules/
+.pnpm-store/
+
+# python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# models & generated media (never commit weights or outputs)
+*.safetensors
+*.ckpt
+*.pt
+*.bin
+*.pth
+output/
+input/
+temp/
+*.png
+*.jpg
+*.jpeg
+*.webp
+!docs/**/*.png
+
+# workflow outputs
+user/
+
+# os noise
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# local config
+.env
+*.local.json

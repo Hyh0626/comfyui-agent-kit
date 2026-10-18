@@ -1,0 +1,57 @@
+{
+  "4": {
+    "class_type": "CheckpointLoaderSimple",
+    "inputs": { "ckpt_name": "your_sdxl_checkpoint.safetensors" }
+  },
+  "10": {
+    "class_type": "LoraLoader",
+    "inputs": {
+      "model": ["4", 0],
+      "clip": ["4", 1],
+      "lora_name": "your_lora\\your_lora.safetensors",
+      "strength_model": 0.75,
+      "strength_clip": 0.75
+    }
+  },
+  "5": {
+    "class_type": "EmptyLatentImage",
+    "inputs": { "width": 640, "height": 640, "batch_size": 1 }
+  },
+  "6": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "masterpiece, best quality, 1girl, simple background, upper body",
+      "clip": ["10", 1]
+    }
+  },
+  "7": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "lowres, bad anatomy, bad hands, text, watermark, worst quality",
+      "clip": ["10", 1]
+    }
+  },
+  "3": {
+    "class_type": "KSampler",
+    "inputs": {
+      "model": ["10", 0],
+      "positive": ["6", 0],
+      "negative": ["7", 0],
+      "latent_image": ["5", 0],
+      "seed": 20261018,
+      "steps": 20,
+      "cfg": 6.0,
+      "sampler_name": "euler_ancestral",
+      "scheduler": "normal",
+      "denoise": 1.0
+    }
+  },
+  "8": {
+    "class_type": "VAEDecode",
+    "inputs": { "samples": ["3", 0], "vae": ["4", 2] }
+  },
+  "9": {
+    "class_type": "SaveImage",
+    "inputs": { "images": ["8", 0], "filename_prefix": "comfyui_agent_kit" }
+  }
+}
