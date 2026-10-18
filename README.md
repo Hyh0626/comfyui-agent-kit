@@ -34,7 +34,7 @@ ComfyUI HTTP API (127.0.0.1:8188)
 comfyui-agent-kit/
 ├─ mcp-server/
 │  ├─ server.py        # stdio JSON-RPC，8 个基础工具（仅用 Python 标准库）
-│  └─ features.py      # 10 个扩展工具（工作流/节点/桌宠资产/SDXL LoRA 训练）
+│  └─ features.py      # 10 个扩展工具（工作流/节点/项目资产/SDXL LoRA 训练）
 ├─ dsh-plugin/
 │  ├─ package.json     # dsh.bundle.patch 指向下面的补丁
 │  ├─ cordis.patch.yml # 只插入自己一行，不替换任何官方组件
@@ -77,7 +77,7 @@ startup_timeout_sec = 10
 [mcp_servers.comfyui-local.env]
 COMFYUI_URL = "http://127.0.0.1:8188"
 COMFYUI_HOME = "E:\\Program\\ComfyUI"
-PET_PROJECT_ROOT = "E:\\Program\\桌宠"
+COMFYUI_PROJECT_ROOT = "D:\\comfyui-project"
 KOHYA_SS_ROOT = "E:\\Program\\kohya_ss"
 ```
 
@@ -93,7 +93,7 @@ KOHYA_SS_ROOT = "E:\\Program\\kohya_ss"
       "env": {
         "COMFYUI_URL": "http://127.0.0.1:8188",
         "COMFYUI_HOME": "E:\\Program\\ComfyUI",
-        "PET_PROJECT_ROOT": "E:\\Program\\桌宠",
+        "COMFYUI_PROJECT_ROOT": "D:\\comfyui-project",
         "KOHYA_SS_ROOT": "E:\\Program\\kohya_ss"
       }
     }
@@ -113,7 +113,7 @@ KOHYA_SS_ROOT = "E:\\Program\\kohya_ss"
         "env": {
           "COMFYUI_URL": "http://127.0.0.1:8188",
           "COMFYUI_HOME": "E:\\Program\\ComfyUI",
-          "PET_PROJECT_ROOT": "E:\\Program\\桌宠",
+          "COMFYUI_PROJECT_ROOT": "D:\\comfyui-project",
           "KOHYA_SS_ROOT": "E:\\Program\\kohya_ss"
         }
       }
@@ -153,7 +153,7 @@ dsh plugin --profile desktop add "C:\path\to\comfyui-agent-kit\dsh-plugin"
 | `COMFYUI_URL` | `http://127.0.0.1:8188` | ComfyUI HTTP 地址 |
 | `COMFYUI_TIMEOUT` | `30` | 单次 HTTP 超时（秒） |
 | `COMFYUI_HOME` | `E:\Program\ComfyUI` | ComfyUI 安装目录（定位 workflows / models） |
-| `PET_PROJECT_ROOT` | `E:\Program\桌宠` | 桌宠项目根（LoRA 数据集与 `assets/art`） |
+| `COMFYUI_PROJECT_ROOT` | `~/comfyui-project` | 目标项目根（LoRA 数据集与 `assets/art`） |
 | `KOHYA_SS_ROOT` | `E:\Program\kohya_ss` | kohya_ss 安装目录 |
 | `COMFYUI_MCP_PYTHON` | `C:\Windows\py.exe`（Windows）/ `python3` | DSH 插件用来拉起 server 的解释器 |
 | `COMFYUI_MCP_SERVER` | `~/.agents/mcp-servers/comfyui/server.py` | server 脚本路径 |
@@ -166,7 +166,7 @@ dsh plugin --profile desktop add "C:\path\to\comfyui-agent-kit\dsh-plugin"
 |---|---|
 | ComfyUI 基础 | `comfyui_status` · `comfyui_list_models` · `comfyui_queue_workflow` · `comfyui_queue_status` · `comfyui_get_history` · `comfyui_interrupt` · `comfyui_upload_image` · `comfyui_download_output` |
 | 节点与工作流 | `comfyui_search_nodes` · `comfyui_get_node_schema` · `comfyui_build_workflow` · `comfyui_validate_workflow` · `comfyui_save_workflow` |
-| 桌宠资产 | `comfyui_apply_pet_art` |
+| 项目资产 | `comfyui_apply_project_art` |
 | SDXL LoRA 训练 | `comfyui_lora_preflight` · `comfyui_lora_prepare` · `comfyui_lora_start` · `comfyui_lora_status` |
 
 ## 示例
@@ -186,7 +186,7 @@ dsh plugin --profile desktop add "C:\path\to\comfyui-agent-kit\dsh-plugin"
 
 - server 只连 `COMFYUI_URL`，不访问任何外网、无遥测。
 - 默认只监听回环地址；如需暴露到局域网请自行加鉴权。
-- `comfyui_apply_pet_art` 覆盖已存在立绘时要求显式 `overwrite=true`，并保留
+- `comfyui_apply_project_art` 覆盖已存在立绘时要求显式 `overwrite=true`，并保留
   `*.before-comfyui.png` 备份。
 - 仓库内不含任何 API key / token。
 

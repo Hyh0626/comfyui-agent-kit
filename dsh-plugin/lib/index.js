@@ -34,8 +34,8 @@ const SERVER =
 const BASE_ENV = {
   COMFYUI_URL: process.env.COMFYUI_URL || 'http://127.0.0.1:8188',
   ...(process.env.COMFYUI_HOME ? { COMFYUI_HOME: process.env.COMFYUI_HOME } : {}),
-  ...(process.env.PET_PROJECT_ROOT
-    ? { PET_PROJECT_ROOT: process.env.PET_PROJECT_ROOT }
+  ...(process.env.COMFYUI_PROJECT_ROOT
+    ? { COMFYUI_PROJECT_ROOT: process.env.COMFYUI_PROJECT_ROOT }
     : {}),
   ...(process.env.KOHYA_SS_ROOT ? { KOHYA_SS_ROOT: process.env.KOHYA_SS_ROOT } : {}),
   PYTHONIOENCODING: 'utf-8',

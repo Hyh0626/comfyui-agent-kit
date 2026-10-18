@@ -15,10 +15,12 @@ from pathlib import Path
 from typing import Any, Callable
 
 COMFYUI_HOME = Path(os.environ.get("COMFYUI_HOME", r"E:\Program\ComfyUI"))
-PET_PROJECT_ROOT = Path(os.environ.get("PET_PROJECT_ROOT", r"E:\Program\桌宠"))
+PROJECT_ROOT = Path(
+    os.environ.get("COMFYUI_PROJECT_ROOT", str(Path.home() / "comfyui-project"))
+)
 KOHYA_ROOT = os.environ.get("KOHYA_SS_ROOT", r"E:\Program\kohya_ss")
 WORKFLOW_DIR = COMFYUI_HOME / "user" / "default" / "workflows"
-TRAINING_DIR = PET_PROJECT_ROOT / "training"
+TRAINING_DIR = PROJECT_ROOT / "training"
 IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".webp", ".bmp"}
 
 
@@ -29,8 +31,8 @@ def tools() -> list[dict[str, Any]]:
         {"name": "comfyui_build_workflow", "description": "辅助搭建并按本机节点 schema 校验工作流草案：生成 SDXL 图生图/多视角差分 API workflow，或按 ComfyUI 官方 Hunyuan3D 单图/多视角模板生成 GLB 工作流；已有 3D API workflow 也可校验。会报告缺少的模型和输入图，不会保存、排队或执行。", "inputSchema": {"type": "object", "properties": {"workflow_type": {"type": "string", "enum": ["img2img", "view_diffs", "image_to_3d"]}, "image": {"type": "string", "description": "ComfyUI input 目录中的图片文件名；图生图或单图 3D 使用"}, "view_prompts_json": {"type": "string", "description": "视角差分 JSON 对象，键为 left/right/back，值为该视角提示词；view_diffs 使用"}, "views_json": {"type": "string", "description": "可选多视角 JSON 对象，键为 front/left/back/right，值为 ComfyUI input 图片文件名；至少两视角时使用 Hunyuan3D MV 模型"}, "checkpoint": {"type": "string", "description": "图生图的 SDXL checkpoint 文件名"}, "model_name": {"type": "string", "description": "可选 Hunyuan3D checkpoint 文件名；默认按单图/MV 模板选择"}, "mesh_resolution": {"type": "integer", "minimum": 512, "maximum": 8192, "description": "Hunyuan3D 潜空间分辨率，官方模板默认 3072"}, "positive": {"type": "string"}, "negative": {"type": "string"}, "steps": {"type": "integer", "minimum": 1, "maximum": 150}, "cfg": {"type": "number", "minimum": 0, "maximum": 30}, "denoise": {"type": "number", "minimum": 0, "maximum": 1}, "seed": {"type": "integer", "minimum": 0}, "lora_name": {"type": "string", "description": "可选：本机 LoRA 文件名"}, "lora_strength": {"type": "number", "minimum": -10, "maximum": 10}, "filename_prefix": {"type": "string"}, "workflow_json": {"type": "string", "description": "可选：已有 3D API workflow JSON；工具会用本机 schema 校验"}}, "required": ["workflow_type"]}},
         {"name": "comfyui_validate_workflow", "description": "使用本机节点列表校验 API 格式 workflow 的节点类型、必填输入和连线引用；不提交队列。", "inputSchema": {"type": "object", "properties": {"workflow_json": {"type": "string"}}, "required": ["workflow_json"]}},
         {"name": "comfyui_save_workflow", "description": "把已确认的 UI workflow 或 API workflow JSON 保存到 ComfyUI 用户工作流目录；API 文件以 .api.json 结尾。", "inputSchema": {"type": "object", "properties": {"name": {"type": "string"}, "workflow_json": {"type": "string"}, "format": {"type": "string", "enum": ["ui", "api"]}}, "required": ["name", "workflow_json", "format"]}},
-        {"name": "comfyui_apply_pet_art", "description": "将 ComfyUI output 图片应用到桌宠项目 assets/art/<角色id>.png；覆盖现有立绘必须显式设置 overwrite=true，旧图会备份。", "inputSchema": {"type": "object", "properties": {"filename": {"type": "string"}, "subfolder": {"type": "string"}, "type": {"type": "string", "enum": ["output", "temp"]}, "character_id": {"type": "string"}, "overwrite": {"type": "boolean"}}, "required": ["filename", "character_id"]}},
-        {"name": "comfyui_lora_preflight", "description": "检查桌宠训练集图片/字幕、重复文件、SDXL 底模、kohya_ss 和 GPU 显存，输出本机 LoRA 预检报告。", "inputSchema": {"type": "object", "properties": {"dataset_dir": {"type": "string"}, "base_model_path": {"type": "string"}, "trainer_root": {"type": "string"}}}},
+        {"name": "comfyui_apply_project_art", "description": "将 ComfyUI output 图片应用到项目 assets/art/<id>.png；覆盖现有立绘必须显式设置 overwrite=true，旧图会备份。", "inputSchema": {"type": "object", "properties": {"filename": {"type": "string"}, "subfolder": {"type": "string"}, "type": {"type": "string", "enum": ["output", "temp"]}, "character_id": {"type": "string"}, "overwrite": {"type": "boolean"}}, "required": ["filename", "character_id"]}},
+        {"name": "comfyui_lora_preflight", "description": "检查训练集图片/字幕、重复文件、SDXL 底模、kohya_ss 和 GPU 显存，输出本机 LoRA 预检报告。", "inputSchema": {"type": "object", "properties": {"dataset_dir": {"type": "string"}, "base_model_path": {"type": "string"}, "trainer_root": {"type": "string"}}}},
         {"name": "comfyui_lora_prepare", "description": "复制已审核的角色图片到训练暂存目录、按触发词生成 caption 草案，并保存 SDXL LoRA 训练计划；学习率默认 1e-4，可配置训练状态保存以便中断后续训；不会启动训练。", "inputSchema": {"type": "object", "properties": {"dataset_dir": {"type": "string"}, "character_id": {"type": "string"}, "base_model_path": {"type": "string"}, "trigger_word": {"type": "string"}, "caption_text": {"type": "string", "description": "没有逐图覆盖时使用的通用描述"}, "caption_overrides_json": {"type": "string", "description": "可选 JSON 对象，按图片文件名给出不同视角/服装/表情 caption"}, "rank": {"type": "integer", "enum": [4, 8]}, "epochs": {"type": "integer", "minimum": 1, "maximum": 100}, "resolution": {"type": "integer", "enum": [512, 640, 704, 768]}, "learning_rate": {"type": "number", "minimum": 0.000001, "maximum": 0.01, "description": "训练学习率；SDXL LoRA 默认 1e-4，覆盖 sd-scripts 的 2e-6 默认值"}, "save_training_state": {"type": "boolean", "description": "每次保存 LoRA checkpoint 时也保存优化器/调度器状态，供中断续训；会占用额外磁盘空间"}, "lr_scheduler": {"type": "string", "enum": ["constant", "linear", "cosine", "cosine_with_restarts", "polynomial", "constant_with_warmup"], "description": "学习率调度器；cosine_with_restarts 为硬重启余弦（每周期内 LR 从初始值余弦降到 0 再跳回）"}, "lr_scheduler_num_cycles": {"type": "integer", "minimum": 1, "maximum": 64, "description": "cosine_with_restarts 的重启周期数；24 epochs 建议 4~8"}, "lr_warmup_steps": {"type": "integer", "minimum": 0, "description": "调度器线性预热步数；0 表示不预热"}, "repeat": {"type": "integer", "minimum": 1, "maximum": 100, "description": "每张图重复次数，决定数据集目录名 <repeat>_<trigger>；默认 10"}, "network_alpha": {"type": "integer", "minimum": 1, "maximum": 128, "description": "LoRA alpha；不填时等于 rank（例如 dim16/alpha8）"}, "train_batch_size": {"type": "integer", "minimum": 1, "maximum": 8, "description": "每卡 batch size；8GB 显存建议 1"}, "optimizer_type": {"type": "string", "enum": ["Adafactor", "AdamW", "AdamW8bit", "PagedAdamW8bit", "Lion", "Lion8bit"], "description": "优化器；Adafactor 省显存，AdamW8bit 质量更好（需 bitsandbytes）"}, "learning_rate_te": {"type": "number", "minimum": 0, "maximum": 0.01, "description": "Text Encoder 学习率；>0 时训练 TE（自动关闭 cache_text_encoder_outputs 与 unet_only）；传 0 或省略表示不训练 TE（走缓存路径，TE 留在 CPU，省显存）"}}, "required": ["character_id", "trigger_word", "caption_text"]}},
         {"name": "comfyui_lora_start", "description": "启动已经准备好的 SDXL LoRA 训练计划。仅在用户看过数据/caption/参数并明确确认后调用 confirmed=true；需要已安装 kohya_ss。可选 resume_state_path 从保存的完整训练状态续训。", "inputSchema": {"type": "object", "properties": {"plan_path": {"type": "string"}, "confirmed": {"type": "boolean"}, "trainer_root": {"type": "string"}, "resume_state_path": {"type": "string", "description": "可选：sd-scripts accelerator.save_state 目录；只有启用 save_training_state 并存在该目录时才能续训"}}, "required": ["plan_path", "confirmed"]}},
         {"name": "comfyui_lora_status", "description": "查看指定 LoRA 训练计划的运行状态和最近日志。", "inputSchema": {"type": "object", "properties": {"plan_path": {"type": "string"}}, "required": ["plan_path"]}},
@@ -46,9 +48,9 @@ def _json_arg(args: dict[str, Any], key: str) -> Any:
 
 def _within_project(path: str | Path) -> Path:
     resolved = Path(path).expanduser().resolve()
-    root = PET_PROJECT_ROOT.resolve()
+    root = PROJECT_ROOT.resolve()
     if resolved != root and root not in resolved.parents:
-        raise ValueError(f"数据目录必须位于桌宠项目目录内：{root}")
+        raise ValueError(f"数据目录必须位于项目目录内：{root}")
     if not resolved.is_dir():
         raise ValueError(f"目录不存在：{resolved}")
     return resolved
@@ -219,7 +221,7 @@ def _staged_report(folder: Path) -> dict[str, Any]:
 
 
 def _preflight(dataset_dir: str | None, base_model_path: str | None, trainer_root: str | None, request: Callable[..., Any]) -> dict[str, Any]:
-    folder = _within_project(dataset_dir or (PET_PROJECT_ROOT / "assets" / "refs"))
+    folder = _within_project(dataset_dir or (PROJECT_ROOT / "assets" / "refs"))
     report = _dataset_report(folder)
     root, script, python = _trainer(trainer_root)
     models = _models()
@@ -232,7 +234,7 @@ def _preflight(dataset_dir: str | None, base_model_path: str | None, trainer_roo
         model_state = "需要用户从以下候选中选择一个 SDXL 底模"
     else:
         model_state = "未发现底模；ComfyUI checkpoints/diffusion_models 目录当前没有权重文件"
-    free_bytes = shutil.disk_usage(TRAINING_DIR.parent if TRAINING_DIR.parent.exists() else PET_PROJECT_ROOT).free
+    free_bytes = shutil.disk_usage(TRAINING_DIR.parent if TRAINING_DIR.parent.exists() else PROJECT_ROOT).free
     try:
         comfy_queue = request("GET", "/queue")
     except Exception as exc:
@@ -465,7 +467,7 @@ def call_tool(name: str, args: dict[str, Any], request: Callable[..., Any]) -> A
                 "mode": "hunyuan3d_v2_multiview" if multiview else "hunyuan3d_v2_single_view",
                 "model_checkpoint": model_name,
                 "missing_dependencies": ([f"模型文件缺失：{model_path}"] if not model_path.is_file() else []) + [f"输入图未上传：{name}" for name in missing_images],
-                "note": "此官方 Hunyuan3D 2.0 模板输出 GLB 几何网格；原生模板不负责纹理材质或骨骼绑定，因此结果不等于 VRM 桌宠模型。8GB 显存运行时可能紧张。工作流仅为草案，不会保存或排队。",
+                "note": "此官方 Hunyuan3D 2.0 模板输出 GLB 几何网格；原生模板不负责纹理材质或骨骼绑定，因此结果不等于 VRM 模型。8GB 显存运行时可能紧张。工作流仅为草案，不会保存或排队。",
                 "next_step": "检查 validation.valid 与 missing_dependencies；把输入图上传并安装列出的 checkpoint 后，先保存 API workflow，用户确认后再排队运行。",
             }
         if workflow_type != "img2img":
@@ -530,18 +532,18 @@ def call_tool(name: str, args: dict[str, Any], request: Callable[..., Any]) -> A
             raise FileExistsError(f"工作流已存在，未覆盖：{target}")
         target.write_text(json.dumps(workflow, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         return {"saved_to": str(target), "format": fmt, "note": "UI workflow 可在 ComfyUI 打开；API workflow 是用于 MCP 队列的 API 图，不能当作画布格式直接打开。"}
-    if name == "comfyui_apply_pet_art":
+    if name == "comfyui_apply_project_art":
         character_id = args["character_id"]
         if not re.fullmatch(r"[A-Za-z0-9_-]+", character_id):
             raise ValueError("character_id 仅允许字母、数字、下划线和连字符")
         filename = args["filename"]
         if Path(filename).suffix.lower() != ".png":
-            raise ValueError("桌宠立绘目标使用 PNG；请先从 ComfyUI output 选择 PNG 文件")
+            raise ValueError("立绘目标必须使用 PNG；请先从 ComfyUI output 选择 PNG 文件")
         query = urllib.parse.urlencode({"filename": filename, "subfolder": args.get("subfolder", ""), "type": args.get("type", "output")})
         req = urllib.request.Request(os.environ.get("COMFYUI_URL", "http://127.0.0.1:8188").rstrip("/") + "/view?" + query)
         with urllib.request.urlopen(req, timeout=60) as response:
             content = response.read()
-        target = PET_PROJECT_ROOT / "assets" / "art" / (character_id + ".png")
+        target = PROJECT_ROOT / "assets" / "art" / (character_id + ".png")
         target.parent.mkdir(parents=True, exist_ok=True)
         if target.exists():
             if not args.get("overwrite", False):
@@ -558,7 +560,7 @@ def call_tool(name: str, args: dict[str, Any], request: Callable[..., Any]) -> A
         trigger = args["trigger_word"].strip()
         if not re.fullmatch(r"[A-Za-z0-9_-]+", character_id) or not re.fullmatch(r"[A-Za-z0-9_-]+", trigger):
             raise ValueError("character_id 和 trigger_word 仅允许字母、数字、下划线和连字符")
-        source = _within_project(args.get("dataset_dir") or (PET_PROJECT_ROOT / "assets" / "refs"))
+        source = _within_project(args.get("dataset_dir") or (PROJECT_ROOT / "assets" / "refs"))
         images = _image_files(source)
         if not images:
             raise ValueError(f"目录内没有可训练图片：{source}")
@@ -673,7 +675,7 @@ def call_tool(name: str, args: dict[str, Any], request: Callable[..., Any]) -> A
             raise ValueError("训练不会启动：先展示并确认数据、caption、底模、参数和显存占用，再设置 confirmed=true")
         plan_path = Path(args["plan_path"]).expanduser().resolve()
         if TRAINING_DIR.resolve() not in plan_path.parents:
-            raise ValueError("plan_path 必须位于桌宠项目 training 目录")
+            raise ValueError("plan_path 必须位于项目 training 目录")
         plan = json.loads(plan_path.read_text(encoding="utf-8"))
         learning_rate = float(plan.get("learning_rate", 1e-4))
         if not math.isfinite(learning_rate) or not 1e-6 <= learning_rate <= 1e-2:
@@ -843,7 +845,7 @@ def call_tool(name: str, args: dict[str, Any], request: Callable[..., Any]) -> A
     if name == "comfyui_lora_status":
         plan_path = Path(args["plan_path"]).expanduser().resolve()
         if TRAINING_DIR.resolve() not in plan_path.parents:
-            raise ValueError("plan_path 必须位于桌宠项目 training 目录")
+            raise ValueError("plan_path 必须位于项目 training 目录")
         pid_file = plan_path.parent / "training.pid"
         if not pid_file.is_file():
             return {"running": False, "reason": "没有训练进程记录", "plan_path": str(plan_path)}
